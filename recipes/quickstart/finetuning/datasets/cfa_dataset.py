@@ -54,36 +54,3 @@ def get_custom_dataset(dataset_config, tokenizer, split, split_ratio=0.9):
         )
 
     return dataset
-
-class CFADataCollator:
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
-        self.tokenizer.padding_side = "right" # during training, one always uses padding on the right
-
-    def __call__(self, samples):
-        dialogs,images = [],[]
-        for sample in samples:
-            image_list,sample_list = sample["texts"]
-            if len(image_list) > 1:
-                raise ValueError("Only support one image per sample")
-            image = image_list[0].convert("RGB") # only use the first image
-            dialog = []
-            for sample_dict in sample_list:
-                if not dialog:
-                    # only append image to the first sentence
-                    dialog += [
-                    {"role":"user","content":[{"type": "image"},{"type": "text", "text": sample_dict["user"].strip()}]},
-                    {"role":"assistant","content":[{"type": "text", "text": sample_dict["assistant"].strip()}]}
-                ]
-                
-                else:
-                    dialog += [
-                    {"role":"user","content":[{"type": "text", "text": sample_dict["user"].strip()}]},
-                    {"role":"assistant","content":[{"type": "text", "text": sample_dict["assistant"].strip()}]}
-                ]
-            dialogs.append(dialog)
-            images.append([image])
-        return tokenize_dialogs(dialogs,images, self.tokenizer)
-
-def get_data_collator(tokenizer):
-    return CFADataCollator(tokenizer)
